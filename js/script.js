@@ -21,16 +21,18 @@ function initializeVue() {
             },
             toggleAudio: function(e) {
                 if(this.paused) {
-                    var remainingUntilBeat = 60000.0 / bpm - (pauseTime - lastBeat);
-                    setTimeout(() => {
-                        graphicsBeat();
-                        lastBeat = Date.now();
-                        beatId = setInterval(() => {
-                            if(this.paused) return;
+                    if(source !== undefined) {
+                        var remainingUntilBeat = 60000.0 / bpm - (pauseTime - lastBeat);
+                        setTimeout(() => {
                             graphicsBeat();
                             lastBeat = Date.now();
-                        }, 60000.0 / bpm);
-                    }, remainingUntilBeat);
+                            beatId = setInterval(() => {
+                                if(this.paused) return;
+                                graphicsBeat();
+                                lastBeat = Date.now();
+                            }, 60000.0 / bpm);
+                        }, remainingUntilBeat);
+                    }
 
                     audioCtx.resume();
                 } else {
@@ -93,6 +95,9 @@ function loadAudio(event) {
                     source.buffer = audioBuffer;
                     source.connect(gainNode);
                     source.start(0);
+                    source.onended = (e) => {
+                        source = undefined;
+                    };
 
                     bpm = tempo;
                     graphicsBeat();
