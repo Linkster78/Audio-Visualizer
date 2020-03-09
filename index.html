@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Audio Visualizer</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <script src="js/three.js"></script>
+        <script src="js/vue.js"></script>
+        <script src="js/beatdetection.js"></script>
+        <script src="js/script.js"></script>
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+
+    <body>
+        <div class="overlay" id="app">
+            <input type="file" id="audioInput" hidden
+                v-on:change="loadAudioFile">
+            <button class="button" 
+                v-on:click="triggerFileInput">
+                Select Audio File</button>
+            <button class="button"
+                v-on:click="toggleAudio">
+                {{paused ? "Play Audio" : "Pause Audio"}}
+            </button>
+            <button class="button"
+                v-on:click="toggleDisplay">
+                {{frequency ? "Audio Frequency" : "Audio Samples"}}
+            </button>
+            <label>Volume:</label>
+            <input type="range" min="0" max="1" step="0.01" 
+                v-model="volume">
+        </div>
+    </body>
+</html>
