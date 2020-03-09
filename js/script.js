@@ -2,7 +2,8 @@
 
 const CAMERA_DISTANCE = 100;
 const FOV = 75;
-const POINT_COUNT = 1024;
+const TERRAIN_SIZE = 64;
+const TERRAIN_GENERATION_SPEED = 20;
 
 /* Vue.js Configuration */
 
@@ -42,16 +43,11 @@ function initializeVue() {
                     audioCtx.suspend();
                 }
                 this.paused = !this.paused;
-            },
-            toggleDisplay: function(e) {
-                this.frequency = !this.frequency;
-                isFrequency = this.frequency;
             }
         },
         data: {
             volume: 1,
-            paused: false,
-            frequency: false
+            paused: false
         },
         watch: {
             volume: function(val) {
@@ -68,13 +64,13 @@ var dataArray, bpm, beatId, lastBeat, pauseTime;
 
 function initializeAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    gainNode = audioCtx.createGain();
     analyserNode = audioCtx.createAnalyser();
+    gainNode = audioCtx.createGain();
 
-    gainNode.connect(analyserNode);
-    analyserNode.connect(audioCtx.destination);
+    analyserNode.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
 
-    analyserNode.fftSize = POINT_COUNT * 2;
+    analyserNode.fftSize = 2048;
     var bufferLength = analyserNode.frequencyBinCount;
     dataArray = new Uint8Array(bufferLength);
 }
@@ -93,7 +89,7 @@ function loadAudio(event) {
             webAudioBeatDetector.analyze(audioBuffer)
                 .then((tempo) => {
                     source.buffer = audioBuffer;
-                    source.connect(gainNode);
+                    source.connect(analyserNode);
                     source.start(0);
                     source.onended = (e) => {
                         source = undefined;
@@ -118,11 +114,15 @@ function loadAudio(event) {
 
 /* Three.js Visualizer */
 
-var scene, camera, renderer, width, height;
-var visualizerLine;
+var perlin, scene, camera, renderer, width, height;
+var terrain, tick;
 
 function initializeThree() {
-    renderer = new THREE.WebGLRenderer();
+    perlin = new Perlin(Date.now());
+    tick = 0;
+
+    renderer = new THREE.WebGLRenderer({alpha: true});
+    renderer.setClearColor(0x000000, 0);
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
@@ -134,12 +134,24 @@ function initializeThree() {
 
     resizeThree();
 
-    var lineGeometry = new THREE.BufferGeometry();
-    var linePoints = new Float32Array(POINT_COUNT * 3);
-    lineGeometry.setAttribute("position", new THREE.BufferAttribute(linePoints, 3));
-    var lineMaterial = new THREE.LineBasicMaterial({color:0xFFFFFF});
-    visualizerLine = new THREE.Line(lineGeometry, lineMaterial);
-    scene.add(visualizerLine);
+    var terrainGeometry = new THREE.PlaneGeometry(500, 250, TERRAIN_SIZE - 1, TERRAIN_SIZE - 1);
+    var terrainMaterial = new THREE.MeshStandardMaterial({
+        emissive: 0x00CC26, emissiveIntensity: 0.5, flatShading: true,
+        side: THREE.DoubleSide
+    });
+    terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.position.y = -50;
+    scene.add(terrain);
+
+    var ambientLight = new THREE.AmbientLight(0x303030);
+    scene.add(ambientLight);
+
+    var directionalLight = new THREE.DirectionalLight(0x707070, 0.6);
+    directionalLight.position.set(0, 10, 25);
+    directionalLight.target.position.set(-5, 0, 0);
+    scene.add(directionalLight);
+    scene.add(directionalLight.target);
 
     animateThree();
 }
@@ -156,34 +168,28 @@ function resizeThree() {
 function animateThree() {
     requestAnimationFrame(animateThree);
 
-    if(isFrequency) {
-        analyserNode.getByteFrequencyData(dataArray);
-    } else {
-        analyserNode.getByteTimeDomainData(dataArray);
-    }
+    tick++;
 
-    visualizerLine.geometry.attributes.position.needsUpdate = true;
-    var positions = visualizerLine.geometry.attributes.position.array;
-    var x, y, z, index;
-    y = z = index = 0;
-    x = -width / 2;
-    for(var i = 0; i < POINT_COUNT; i++) {
-        x += width / POINT_COUNT;
-        y = dataArray[i] / 256 * height - height / 2;
-
-        positions[index++] = x;
-        positions[index++] = y;
-        positions[index++] = z;
+    if(tick % (60 / TERRAIN_GENERATION_SPEED) == 0) {
+        for(var x = 0; x < TERRAIN_SIZE; x++) {
+            for(var y = 0; y < TERRAIN_SIZE; y++) {
+                terrain.geometry.vertices[y * TERRAIN_SIZE + x].z = (TERRAIN_SIZE - y) / TERRAIN_SIZE * 75 *
+                    perlin.noise(x / TERRAIN_SIZE * 3,
+                         (y - Math.floor(tick / (60 / TERRAIN_GENERATION_SPEED))) / TERRAIN_SIZE * 3,
+                          0);
+            }
+        }
+        terrain.geometry.verticesNeedUpdate = true;
     }
 
     renderer.render(scene, camera);
 }
 
 function graphicsBeat() {
-    renderer.setClearColor(new THREE.Color(`hsl(${Math.random() * 255.0}, 100%, 10%)`));
+    /* DO SOMETHING WITH BEAT, OR MAYBE USE A SINE WAVE TO INTERPOLATE AN EFFECT WITH THE GIVEN FREQUENCY? */
 }
 
-/* Callbacks */
+/* Setting Callbacks */
 
 window.onload = (event) => {
     initializeVue();

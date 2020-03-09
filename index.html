@@ -8,6 +8,7 @@
         <script src="js/three.js"></script>
         <script src="js/vue.js"></script>
         <script src="js/beatdetection.js"></script>
+        <script src="js/perlin.js"></script>
         <script src="js/script.js"></script>
         <link rel="stylesheet" href="css/style.css">
     </head>
@@ -22,10 +23,6 @@
             <button class="button"
                 v-on:click="toggleAudio">
                 {{paused ? "Play Audio" : "Pause Audio"}}
-            </button>
-            <button class="button"
-                v-on:click="toggleDisplay">
-                {{frequency ? "Audio Frequency" : "Audio Samples"}}
             </button>
             <label>Volume:</label>
             <input type="range" min="0" max="1" step="0.01" 
