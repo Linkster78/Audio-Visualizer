@@ -1,3 +1,8 @@
+/* Webpack Imports */
+import Vue from 'vue';
+import {makeNoise2D} from "open-simplex-noise";
+import * as THREE from 'three';
+
 /* Program Constants */
 
 const CAMERA_DISTANCE = 100;
@@ -105,11 +110,11 @@ function loadAudio(event) {
 
 /* Three.js Visualizer */
 
-var perlin, scene, camera, renderer, width, height;
-var terrain, sun, sunCenter, tick;
+var scene, camera, renderer, width, height;
+var noise2d, terrain, sun, sunCenter, tick;
 
 function initializeThree() {
-    perlin = new Perlin(Date.now());
+    noise2d = makeNoise2D(Date.now());
     tick = 0;
 
     renderer = new THREE.WebGLRenderer({alpha: true});
@@ -186,9 +191,10 @@ function animateThree() {
         for(var x = 0; x < TERRAIN_SIZE; x++) {
             for(var y = 0; y < TERRAIN_SIZE; y++) {
                 terrain.geometry.vertices[y * TERRAIN_SIZE + x].z = (TERRAIN_SIZE - y) / TERRAIN_SIZE * 100 *
-                    perlin.noise(x / TERRAIN_SIZE * 3,
-                         (y - Math.floor(tick / (60 / TERRAIN_GENERATION_SPEED))) / TERRAIN_SIZE * 3,
-                          0);
+                    (noise2d(
+                        x / TERRAIN_SIZE * 4,
+                        (y - Math.floor(tick / (60 / TERRAIN_GENERATION_SPEED))) / TERRAIN_SIZE * 4
+                    ) + 1) / 2;
             }
         }
         terrain.material.color.setHSL((tick / (60 * 20)) % 1.0, 1.0, 0.5);

@@ -1,0 +1,29 @@
+{
+  "name": "audio-visualizer",
+  "version": "1.0.0",
+  "description": "Visualizes audio with a 3D environment",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RedstoneTek/Audio-Visualizer.git"
+  },
+  "author": "RedstoneTek",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RedstoneTek/Audio-Visualizer/issues"
+  },
+  "homepage": "https://github.com/RedstoneTek/Audio-Visualizer#readme",
+  "dependencies": {
+    "open-simplex-noise": "^2.2.0",
+    "three": "^0.114.0",
+    "vue": "^2.6.11",
+    "webpack": "^4.42.0"
+  },
+  "devDependencies": {
+    "webpack-cli": "^3.3.11"
+  }
+}
