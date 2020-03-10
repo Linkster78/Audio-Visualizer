@@ -42,10 +42,12 @@ function initializeVue() {
 
 /* Audio Playback */
 
-var audioCtx, gainNode, sources, filterLFNode, analyserLFNode, filterHFNode, analyserHFNode;
-var dataArray;
+var audioCtx, gainNode, filterLFNode, analyserLFNode, filterHFNode, analyserHFNode;
+var dataArray, sources, loading;
 
 function initializeAudio() {
+    loading = false;
+
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     gainNode = audioCtx.createGain();
     gainNode.connect(audioCtx.destination);
@@ -66,6 +68,7 @@ function initializeAudio() {
 
 function loadAudio(event) {
     if(sources !== undefined) sources.forEach((source) => source.stop(0));
+    loading = true;
 
     sources = new Array(2);
     for(var i = 0; i < sources.length; i++) {
@@ -89,6 +92,12 @@ function loadAudio(event) {
                 }
                 sources[i].start(0);
             }
+            sources[0].onended = (event) => {
+                if(!loading) {
+                    sources = undefined;
+                }
+            };
+            loading = false;
         });
     };
     reader.readAsArrayBuffer(file);
@@ -116,27 +125,24 @@ function initializeThree() {
 
     resizeThree();
 
-    var terrainGeometry = new THREE.PlaneGeometry(500, 250, TERRAIN_SIZE - 1, TERRAIN_SIZE - 1);
+    var terrainGeometry = new THREE.PlaneGeometry(1250, 500, TERRAIN_SIZE - 1, TERRAIN_SIZE - 1);
     var terrainMaterial = new THREE.MeshStandardMaterial({
-        emissive: 0x00CC26, emissiveIntensity: 0.5, flatShading: true,
+        color: 0x00FF00, emissiveIntensity: 0.5, flatShading: true,
         side: THREE.DoubleSide
     });
     terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
     terrain.rotation.x = -Math.PI / 2;
-    terrain.position.y = -50;
+    terrain.position.y = -75;
     scene.add(terrain);
 
-    var sunGeometry = new THREE.CircleGeometry(50, 32);
-    var sunMaterial = new THREE.MeshBasicMaterial({color: 0xFFEA00});
+    var sunGeometry = new THREE.CircleGeometry(80, 32);
+    var sunMaterial = new THREE.MeshBasicMaterial({color: 0xEEDD99});
     sun = new THREE.Mesh(sunGeometry, sunMaterial);
-    sun.position.z = -125;
+    sun.position.z = -250;
     sun.position.y = 80;
     scene.add(sun);
 
-    var ambientLight = new THREE.AmbientLight(0x303030);
-    scene.add(ambientLight);
-
-    var directionalLight = new THREE.DirectionalLight(0x707070, 0.6);
+    var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.9);
     directionalLight.position.set(0, 10, 25);
     directionalLight.target.position.set(-5, 0, 0);
     scene.add(directionalLight);
@@ -179,13 +185,15 @@ function animateThree() {
     if(tick % (60 / TERRAIN_GENERATION_SPEED) == 0) {
         for(var x = 0; x < TERRAIN_SIZE; x++) {
             for(var y = 0; y < TERRAIN_SIZE; y++) {
-                terrain.geometry.vertices[y * TERRAIN_SIZE + x].z = (TERRAIN_SIZE - y) / TERRAIN_SIZE * 75 *
+                terrain.geometry.vertices[y * TERRAIN_SIZE + x].z = (TERRAIN_SIZE - y) / TERRAIN_SIZE * 100 *
                     perlin.noise(x / TERRAIN_SIZE * 3,
                          (y - Math.floor(tick / (60 / TERRAIN_GENERATION_SPEED))) / TERRAIN_SIZE * 3,
                           0);
             }
         }
-        terrain.material.color.setHSL((tick / (60 * 15)) % 1, 1.0, 0.6);
+        terrain.material.color.setHSL((tick / (60 * 20)) % 1.0, 1.0, 0.5);
+        var col = terrain.material.color;
+        document.body.style.background = `linear-gradient(0deg, rgba(10, 10, 10,1) 0%, rgba(${255 - col.r * 255},${255 - col.g * 255},${255 - col.b * 255},1) 100%)`;
         terrain.geometry.verticesNeedUpdate = true;
     }
 

@@ -5,8 +5,7 @@ html * {
 }
 
 body {
-    background: rgb(255,172,67);
-    background: linear-gradient(0deg, rgba(255,172,67,1) 0%, rgba(138,190,153,1) 73%, rgba(0,212,255,1) 100%); 
+    background: linear-gradient(0deg, rgba(10, 10, 10,1) 0%, purple 100%);
 }
 
 canvas {
