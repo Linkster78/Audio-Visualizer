@@ -97,6 +97,7 @@ function loadAudio(event) {
                     source.start(0);
                     source.onended = (e) => {
                         source = undefined;
+                        clearInterval(beatId);
                     };
 
                     bpm = tempo;
