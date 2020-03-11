@@ -19,6 +19,7 @@
   "homepage": "https://github.com/RedstoneTek/Audio-Visualizer#readme",
   "dependencies": {
     "open-simplex-noise": "^2.2.0",
+    "postprocessing": "^6.12.2",
     "three": "^0.114.0",
     "vue": "^2.6.11",
     "webpack": "^4.42.0"

@@ -1,7 +1,8 @@
 /* Webpack Imports */
 import Vue from 'vue';
-import {makeNoise2D} from "open-simplex-noise";
-import * as THREE from 'three';
+import { makeNoise2D } from "open-simplex-noise";
+import * as THREE from "three";
+import { EffectComposer, RenderPass, EffectPass, BloomEffect, ColorDepthEffect } from "postprocessing";
 
 /* Program Constants */
 
@@ -110,30 +111,23 @@ function loadAudio(event) {
 
 /* Three.js Visualizer */
 
-var scene, camera, renderer, width, height;
+var scene, clock, camera, composer, renderer, width, height;
 var noise2d, terrain, sun, sunCenter, tick;
 
 function initializeThree() {
     noise2d = makeNoise2D(Date.now());
     tick = 0;
 
-    renderer = new THREE.WebGLRenderer({alpha: true});
-    renderer.setClearColor(0x000000, 0);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
     scene = new THREE.Scene();
+    clock = new THREE.Clock();
 
     camera = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, CAMERA_DISTANCE);
     camera.lookAt(0, 0, 0);
 
-    resizeThree();
-
     var terrainGeometry = new THREE.PlaneGeometry(1250, 500, TERRAIN_SIZE - 1, TERRAIN_SIZE - 1);
     var terrainMaterial = new THREE.MeshStandardMaterial({
-        color: 0x00FF00, emissiveIntensity: 0.5, flatShading: true,
-        side: THREE.DoubleSide
+        color: 0x00FF00, emissiveIntensity: 0.5, flatShading: true, side: THREE.DoubleSide
     });
     terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
     terrain.rotation.x = -Math.PI / 2;
@@ -153,6 +147,18 @@ function initializeThree() {
     scene.add(directionalLight);
     scene.add(directionalLight.target);
 
+    renderer = new THREE.WebGLRenderer({alpha: true});
+    renderer.setClearColor(0x000000, 0);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    composer.addPass(new EffectPass(camera, new BloomEffect({
+        luminanceThreshold: 0.7,
+    })));
+    composer.addPass(new EffectPass(camera, new ColorDepthEffect()));
+
+    resizeThree();
     animateThree();
 }
 
@@ -169,6 +175,7 @@ function resizeThree() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
     height = getHeightAtDepth(CAMERA_DISTANCE);
     width = getWidthAtDepth(CAMERA_DISTANCE);
 }
@@ -203,7 +210,7 @@ function animateThree() {
         terrain.geometry.verticesNeedUpdate = true;
     }
 
-    renderer.render(scene, camera);
+    composer.render(clock.getDelta());
 }
 
 /* Setting Callbacks */
