@@ -3,7 +3,7 @@
 import Vue from 'vue';
 import { makeNoise2D } from "open-simplex-noise";
 import * as THREE from "three";
-import { EffectComposer, RenderPass, EffectPass, BloomEffect, ColorDepthEffect } from "postprocessing";
+import { EffectComposer, RenderPass, EffectPass, BloomEffect } from "postprocessing";
 
 /* Program Constants */
 
@@ -167,7 +167,6 @@ function initializeThree() {
     composer.addPass(new EffectPass(camera, new BloomEffect({
         luminanceThreshold: 0.7,
     })));
-    composer.addPass(new EffectPass(camera, new ColorDepthEffect()));
 
     resizeThree();
     animateThree();
