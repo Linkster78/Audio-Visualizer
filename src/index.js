@@ -1,4 +1,5 @@
 /* Webpack Imports */
+
 import Vue from 'vue';
 import { makeNoise2D } from "open-simplex-noise";
 import * as THREE from "three";
@@ -48,7 +49,7 @@ function initializeVue() {
 
 /* Audio Playback */
 
-var audioCtx, gainNode, filterLFNode, analyserLFNode, filterHFNode, analyserHFNode;
+var audioCtx, gainNode, splitterNode, mergerNode, analyserLNode, analyserRNode, filterLFNode, analyserLFNode, filterHFNode, analyserHFNode;
 var dataArray, sources, loading;
 
 function initializeAudio() {
@@ -56,6 +57,16 @@ function initializeAudio() {
 
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     gainNode = audioCtx.createGain();
+    splitterNode = audioCtx.createChannelSplitter(2);
+    mergerNode = audioCtx.createChannelMerger(2);
+    analyserLNode = audioCtx.createAnalyser();
+    analyserRNode = audioCtx.createAnalyser();
+
+    splitterNode.connect(analyserLNode, 0);
+    splitterNode.connect(analyserRNode, 1);
+    analyserLNode.connect(mergerNode, 0, 0);
+    analyserRNode.connect(mergerNode, 0, 1);
+    mergerNode.connect(gainNode);
     gainNode.connect(audioCtx.destination);
 
     filterLFNode = audioCtx.createBiquadFilter();
@@ -90,7 +101,7 @@ function loadAudio(event) {
                 sources[i].buffer = audioBuffer;
                 switch(i) {
                     case 0:
-                        sources[i].connect(gainNode);
+                        sources[i].connect(splitterNode);
                         break;
                     case 1:
                         sources[i].connect(filterLFNode);
@@ -183,6 +194,7 @@ function resizeThree() {
 function animateThree() {
     requestAnimationFrame(animateThree);
 
+    /* Render Sun Bass Visualizer */
     analyserLFNode.getByteTimeDomainData(dataArray);
     var highestLFSample = 0;
     for(var i = 0; i < dataArray.length; i++) {
@@ -193,6 +205,13 @@ function animateThree() {
     sun.scale.x = value;
     sun.scale.y = value;
 
+    /* Render Frequency Visualizers */
+    analyserLNode.getByteFrequencyData(dataArray);
+    //do stuff
+    analyserRNode.getByteFrequencyData(dataArray);
+    //do stuff
+
+    /* Render Terrain */
     if(audioCtx.state != "suspended" && sources !== undefined) tick++;
     if(tick % (60 / TERRAIN_GENERATION_SPEED) == 0) {
         for(var x = 0; x < TERRAIN_SIZE; x++) {
