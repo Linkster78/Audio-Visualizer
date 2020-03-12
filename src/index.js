@@ -11,6 +11,8 @@ const CAMERA_DISTANCE = 100;
 const FOV = 75;
 const TERRAIN_SIZE = 64;
 const TERRAIN_GENERATION_SPEED = 20;
+const SUN_RADIUS = 80;
+const VISUALIZER_LINE_WIDTH = 25;
 
 /* Vue.js Configuration */
 
@@ -123,7 +125,7 @@ function loadAudio(event) {
 /* Three.js Visualizer */
 
 var scene, clock, camera, composer, renderer, width, height;
-var noise2d, terrain, sun, sunCenter, tick;
+var noise2d, terrain, sun, visualizerLeft, visualizerRight, tick;
 
 function initializeThree() {
     noise2d = makeNoise2D(Date.now());
@@ -142,15 +144,38 @@ function initializeThree() {
     });
     terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
     terrain.rotation.x = -Math.PI / 2;
-    terrain.position.y = -75;
+    terrain.position.y = -100;
     scene.add(terrain);
 
-    var sunGeometry = new THREE.CircleGeometry(80, 32);
+    var sunGeometry = new THREE.CircleGeometry(SUN_RADIUS, 32);
     var sunMaterial = new THREE.MeshBasicMaterial({color: 0xEEDD99});
     sun = new THREE.Mesh(sunGeometry, sunMaterial);
     sun.position.z = -250;
     sun.position.y = 80;
     scene.add(sun);
+
+    var widthAt = getWidthAtDepth(250 + CAMERA_DISTANCE);
+    var heightAt = getHeightAtDepth(250 + CAMERA_DISTANCE);
+    var usableWidth = widthAt / 2 - SUN_RADIUS * 2 - 10;
+    var usableHeight = heightAt / 1.75;
+    var lineCount = Math.floor(usableWidth / (VISUALIZER_LINE_WIDTH * 1.75));
+    visualizerLeft = new Array(lineCount);
+    visualizerRight = new Array(lineCount);
+    var lineMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
+    for(var i = 0; i < lineCount; i++) {
+        var leftGeometry = new THREE.PlaneGeometry(VISUALIZER_LINE_WIDTH, usableHeight);
+        var rightGeometry = new THREE.PlaneGeometry(VISUALIZER_LINE_WIDTH, usableHeight);
+        visualizerLeft[i] = new THREE.Mesh(leftGeometry, lineMaterial);
+        visualizerRight[i] = new THREE.Mesh(rightGeometry, lineMaterial);
+        visualizerLeft[i].position.set(
+            -SUN_RADIUS * 2 - VISUALIZER_LINE_WIDTH * 1.25 - (VISUALIZER_LINE_WIDTH * 1.75 * ((lineCount - 1) - i)),
+            50, -250);
+        visualizerRight[i].position.set(
+            SUN_RADIUS * 2 + VISUALIZER_LINE_WIDTH * 1.25 + (VISUALIZER_LINE_WIDTH * 1.75 * ((lineCount - 1) - i)),
+            50, -250);
+        scene.add(visualizerLeft[i]);
+        scene.add(visualizerRight[i]);
+    }
 
     var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.9);
     directionalLight.position.set(0, 10, 25);
@@ -206,16 +231,40 @@ function animateThree() {
 
     /* Render Frequency Visualizers */
     analyserLNode.getByteFrequencyData(dataArray);
-    //do stuff
+    for(var i = 0; i < visualizerLeft.length; i++) {
+        var visualizerLine = visualizerLeft[i];
+        var dataCount = Math.floor(dataArray.length / visualizerLeft.length);
+        var dataSum = 0;
+        for(var u = 0; u < dataCount; u++) {
+            dataSum += dataArray[i * dataCount + u];
+        }
+        var dataValue = dataSum / dataCount;
+        var lineTotalHeight = -visualizerLine.geometry.vertices[2].y * 2;
+        var lineHeight = dataValue / 255 * lineTotalHeight * 1.25 - lineTotalHeight / 2;
+        visualizerLine.geometry.vertices[0].y = visualizerLine.geometry.vertices[1].y = lineHeight;
+        visualizerLine.geometry.verticesNeedUpdate = true;
+    }
     analyserRNode.getByteFrequencyData(dataArray);
-    //do stuff
+    for(var i = 0; i < visualizerRight.length; i++) {
+        var visualizerLine = visualizerRight[i];
+        var dataCount = Math.floor(dataArray.length / visualizerRight.length);
+        var dataSum = 0;
+        for(var u = 0; u < dataCount; u++) {
+            dataSum += dataArray[i * dataCount + u];
+        }
+        var dataValue = dataSum / dataCount;
+        var lineTotalHeight = -visualizerLine.geometry.vertices[2].y * 2;
+        var lineHeight = dataValue / 255 * lineTotalHeight * 1.25 - lineTotalHeight / 2;
+        visualizerLine.geometry.vertices[0].y = visualizerLine.geometry.vertices[1].y = lineHeight;
+        visualizerLine.geometry.verticesNeedUpdate = true;
+    }
 
     /* Render Terrain */
     if(audioCtx.state != "suspended" && sources !== undefined) tick++;
     if(tick % (60 / TERRAIN_GENERATION_SPEED) == 0) {
         for(var x = 0; x < TERRAIN_SIZE; x++) {
             for(var y = 0; y < TERRAIN_SIZE; y++) {
-                terrain.geometry.vertices[y * TERRAIN_SIZE + x].z = (TERRAIN_SIZE - y) / TERRAIN_SIZE * 100 *
+                terrain.geometry.vertices[y * TERRAIN_SIZE + x].z = (TERRAIN_SIZE - y) / TERRAIN_SIZE * 75 *
                     (noise2d(
                         x / TERRAIN_SIZE * 4,
                         (y - Math.floor(tick / (60 / TERRAIN_GENERATION_SPEED))) / TERRAIN_SIZE * 4
